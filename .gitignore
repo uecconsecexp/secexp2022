@@ -1,0 +1,5 @@
+.env
+client
+server
+/se_rust/target
+playgrounds/
