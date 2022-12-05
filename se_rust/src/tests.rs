@@ -1,6 +1,6 @@
 use std::{time, thread};
-use crate::server::{TcpServer, new_tcp_server, new_channel_server};
-use crate::client::{TcpClient, new_tcp_client, new_channel_client};
+use crate::server::{TcpServer, ChannelServer};
+use crate::client::{TcpClient, ChannelClient};
 use crate::comm::Communicator;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
@@ -72,7 +72,7 @@ fn channel_tests() {
     let (s_tx, s_rx) = bounded(0);
     let (c_tx, c_rx) = bounded(0);
 
-    let (channel_server, channel_client) = (new_channel_server(s_rx, c_tx), new_channel_client(c_rx, s_tx));
+    let (channel_server, channel_client) = (ChannelServer::new(s_rx, c_tx), ChannelClient::new(c_rx, s_tx));
     let channel_server = Arc::new(Mutex::new(channel_server));
     let channel_client = Arc::new(Mutex::new(channel_client));
 
@@ -89,7 +89,7 @@ fn prepare_tcp_members() -> (TcpServer, TcpClient) {
     let (s_tx, s_rx) = channel();
 
     thread::spawn(move || {
-        let tcp_server = new_tcp_server().unwrap();
+        let tcp_server = TcpServer::new().unwrap();
         s_tx.send(tcp_server).unwrap();
     });
 
@@ -98,7 +98,7 @@ fn prepare_tcp_members() -> (TcpServer, TcpClient) {
     let (c_tx, c_rx) = channel();
 
     thread::spawn(move || {
-        let tcp_client = new_tcp_client("0.0.0.0").unwrap();
+        let tcp_client = TcpClient::new("0.0.0.0").unwrap();
         c_tx.send(tcp_client).unwrap();
     });
 

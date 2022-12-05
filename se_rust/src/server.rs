@@ -27,18 +27,22 @@ const PORT: &'static str = "10000";
 
 pub type TcpServer = Server<TcpStream>;
 
-pub fn new_tcp_server() -> Result<TcpServer> {
-    let listener = TcpListener::bind(format!("{}:{}", ADDRESS, PORT))?;
-    let (stream, addr) = listener.accept()?;
-    println!("Connection from {:?}", addr);
-
-    Ok(Server { stream })
+impl TcpServer {
+    pub fn new() -> Result<TcpServer> {
+        let listener = TcpListener::bind(format!("{}:{}", ADDRESS, PORT))?;
+        let (stream, addr) = listener.accept()?;
+        println!("Connection from {:?}", addr);
+    
+        Ok(Server { stream })
+    }
 }
 
 pub type ChannelServer = Server<ChannelStream>;
 
-pub fn new_channel_server(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelServer {
-    Server {
-        stream: ChannelStream::new(rx, tx),
+impl ChannelServer {
+    pub fn new(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelServer {
+        Server {
+            stream: ChannelStream::new(rx, tx),
+        }
     }
 }

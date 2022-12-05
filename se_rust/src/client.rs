@@ -26,17 +26,21 @@ const PORT: &'static str = "10000";
 
 pub type TcpClient = Client<TcpStream>;
 
-pub fn new_tcp_client(server_address: &str) -> Result<TcpClient> {
-    let stream = TcpStream::connect(format!("{}:{}", server_address, PORT))?;
-    println!("Connection to {:?}", server_address);
-
-    Ok(Client { stream })
+impl TcpClient {
+    pub fn new(server_address: &str) -> Result<TcpClient> {
+        let stream = TcpStream::connect(format!("{}:{}", server_address, PORT))?;
+        println!("Connection to {:?}", server_address);
+    
+        Ok(Client { stream })
+    }
 }
 
 pub type ChannelClient = Client<ChannelStream>;
 
-pub fn new_channel_client(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelClient {
-    Client {
-        stream: ChannelStream::new(rx, tx),
+impl ChannelClient {
+    pub fn new(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelClient {
+        Client {
+            stream: ChannelStream::new(rx, tx),
+        }
     }
 }
