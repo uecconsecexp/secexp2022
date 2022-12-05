@@ -83,6 +83,9 @@ fn channel_tests() {
     let matrix = vec![vec![1.0, 2.0], vec![3.0, 4.0]];
     ping_matrix(Arc::clone(&channel_server), Arc::clone(&channel_client), matrix.clone());
     ping_matrix(Arc::clone(&channel_client), Arc::clone(&channel_server), matrix);
+    let matrix = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]];
+    ping_matrix(Arc::clone(&channel_server), Arc::clone(&channel_client), matrix.clone());
+    ping_matrix(Arc::clone(&channel_client), Arc::clone(&channel_server), matrix);
 }
 
 fn prepare_tcp_members() -> (TcpServer, TcpClient) {
@@ -116,6 +119,9 @@ fn tcp_tests() {
     ping_with_new_line(Arc::clone(&tcp_server), Arc::clone(&tcp_client));
     ping_with_new_line(Arc::clone(&tcp_client), Arc::clone(&tcp_server));
     let matrix = vec![vec![1.0, 2.0], vec![3.0, 4.0]];
+    ping_matrix(Arc::clone(&tcp_server), Arc::clone(&tcp_client), matrix.clone());
+    ping_matrix(Arc::clone(&tcp_client), Arc::clone(&tcp_server), matrix);
+    let matrix = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]];
     ping_matrix(Arc::clone(&tcp_server), Arc::clone(&tcp_client), matrix.clone());
     ping_matrix(Arc::clone(&tcp_client), Arc::clone(&tcp_server), matrix);
 }

@@ -7,7 +7,7 @@ pub struct Matrix {
 }
 
 pub(crate) fn send_table<C: Communicator + ?Sized>(comm: &mut C, table: Vec<Vec<f64>>) -> Result<()> {
-    if table.len() == 0 || table.len() != table[0].len() {
+    if table.len() == 0 {
         return Err(anyhow::anyhow!("Invalid matrix"));
     }
 
