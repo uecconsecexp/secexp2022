@@ -1,39 +1,28 @@
-use crate::comm::{
-    new_channel_sr, ChannelInfo, ChannelReceiver, ChannelSender, CommunicatorCore,
-    TCPCommunicator, ChannelCommunicator
-};
+use crate::comm::{ChannelCommunicator, Communicator, TcpCommunicator};
 use anyhow::Result;
 use crossbeam_channel::{Receiver, Sender};
-use std::io::{BufReader, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::io::BufReader;
+use std::net::TcpListener;
 
-pub struct Server<S, R>
-where
-    S: Write,
-    R: Read,
-{
-    sender: S,
-    receiver: BufReader<R>,
-}
+pub struct Server<C: Communicator>(C);
 
-impl<S, R> CommunicatorCore<S, R> for Server<S, R>
+impl<C> Communicator for Server<C>
 where
-    S: Write,
-    R: Read,
+    C: Communicator,
 {
-    fn get_sender(&mut self) -> &mut S {
-        &mut self.sender
+    fn send(&mut self, data: &[u8]) -> std::io::Result<()> {
+        self.0.send(data)
     }
 
-    fn get_receiver(&mut self) -> &mut BufReader<R> {
-        &mut self.receiver
+    fn receive(&mut self) -> std::io::Result<Vec<u8>> {
+        self.0.receive()
     }
 }
 
 const ADDRESS: &'static str = "127.0.0.1";
 const PORT: &'static str = "10000";
 
-pub type TcpServer = Server<TcpStream, TcpStream>;
+pub type TcpServer = Server<TcpCommunicator>;
 
 impl TcpServer {
     pub fn new() -> Result<TcpServer> {
@@ -42,32 +31,19 @@ impl TcpServer {
         println!("Connection from {:?}", addr);
         let receiver = BufReader::new(stream.try_clone()?);
 
-        Ok(Server {
+        Ok(Self(TcpCommunicator {
             sender: stream,
             receiver,
-        })
+        }))
     }
 }
 
-impl TCPCommunicator for TcpServer {}
-
-pub type ChannelServer = Server<ChannelSender, ChannelReceiver>;
+pub type ChannelServer = Server<ChannelCommunicator>;
 
 impl ChannelServer {
     pub fn new(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelServer {
-        let (sender, receiver) = new_channel_sr(rx, tx);
-        let receiver = BufReader::new(receiver);
-        Server { sender, receiver }
+        let cc = ChannelCommunicator::new(rx, tx);
+
+        Self(cc)
     }
 }
-
-impl ChannelInfo for ChannelServer {
-    fn mut_tr(&mut self) -> &mut ChannelSender{
-        &mut self.sender
-    }
-    fn mut_cr(&mut self) -> &mut ChannelReceiver {
-        self.receiver.get_mut()
-    }
-}
-
-impl ChannelCommunicator for ChannelServer {}

@@ -2,17 +2,14 @@ use crate::client::{ChannelClient, TcpClient};
 use crate::comm::Communicator;
 use crate::server::{ChannelServer, TcpServer};
 use crossbeam_channel::unbounded;
-use std::io::{Read, Write};
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
 
-fn ping_raw<R, W, C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>, message: &[u8])
+fn ping_raw<C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>, message: &[u8])
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     let m = message.to_vec();
     thread::spawn(move || {
@@ -34,12 +31,10 @@ where
     );
 }
 
-fn ping_multiple_raw<R, W, C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>, messages: Vec<Vec<u8>>)
+fn ping_multiple_raw<C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>, messages: Vec<Vec<u8>>)
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     let ms = messages.clone();
     thread::spawn(move || {
@@ -62,22 +57,18 @@ where
     while !t.is_finished() {}
 }
 
-fn ping<R, W, C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
+fn ping<C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     ping_raw(c1, c2, b"ping");
 }
 
-fn ping_multiple<R, W, C1, C2>(times: usize, c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
+fn ping_multiple<C1, C2>(times: usize, c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     ping_multiple_raw(
         c1,
@@ -88,12 +79,10 @@ where
     );
 }
 
-fn ping_with_new_line<R, W, C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
+fn ping_with_new_line<C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     ping_raw(
         c1,
@@ -103,12 +92,10 @@ ping!",
     );
 }
 
-fn ping_with_new_line_multiple<R, W, C1, C2>(times: usize, c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
+fn ping_with_new_line_multiple<C1, C2>(times: usize, c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     ping_multiple_raw(
         c1,
@@ -127,12 +114,10 @@ times: {}",
     );
 }
 
-fn ping_matrix<R, W, C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>, matrix: Vec<Vec<f64>>)
+fn ping_matrix<C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>, matrix: Vec<Vec<f64>>)
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     let m = matrix.clone();
     thread::spawn(move || {
@@ -151,16 +136,14 @@ where
     assert_eq!(rx.recv().unwrap(), matrix);
 }
 
-fn ping_matrix_multiple<R, W, C1, C2>(
+fn ping_matrix_multiple<C1, C2>(
     times: usize,
     c1: Arc<Mutex<C1>>,
     c2: Arc<Mutex<C2>>,
     matrix: Vec<Vec<f64>>,
 ) where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     let m = matrix.clone();
     thread::spawn(move || {
@@ -182,12 +165,10 @@ fn ping_matrix_multiple<R, W, C1, C2>(
     while !t.is_finished() {}
 }
 
-fn tests_base<R, W, C1, C2>(server: Arc<Mutex<C1>>, client: Arc<Mutex<C2>>)
+fn tests_base<C1, C2>(server: Arc<Mutex<C1>>, client: Arc<Mutex<C2>>)
 where
-    R: Read,
-    W: Write,
-    C1: Communicator<W, R> + Sync + Send + 'static,
-    C2: Communicator<W, R> + Sync + Send + 'static,
+    C1: Communicator + Sync + Send + 'static,
+    C2: Communicator + Sync + Send + 'static,
 {
     println!("ping single");
 

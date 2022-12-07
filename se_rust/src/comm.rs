@@ -3,13 +3,12 @@ use crossbeam_channel::{Receiver, Sender};
 use std::io::{BufRead, BufReader, Read, Result, Write};
 use std::net::TcpStream;
 
-pub trait CommunicatorCore<Sender, Receiver>
-where
-    Sender: Write,
-    Receiver: Read,
-{
-    fn get_sender(&mut self) -> &mut Sender;
-    fn get_receiver(&mut self) -> &mut BufReader<Receiver>;
+pub trait CommunicatorCore {
+    type Sender: Write;
+    type Receiver: Read;
+
+    fn get_sender(&mut self) -> &mut Self::Sender;
+    fn get_receiver(&mut self) -> &mut BufReader<Self::Receiver>;
 
     fn write(&mut self, data: &[u8]) -> Result<()> {
         let data = data
@@ -60,11 +59,7 @@ where
     }
 }
 
-pub trait Communicator<Sender, Receiver>: CommunicatorCore<Sender, Receiver>
-where
-    Sender: Write,
-    Receiver: Read,
-{
+pub trait Communicator {
     fn send(&mut self, data: &[u8]) -> Result<()>;
 
     // channelでrecvを挟むために用意した
@@ -79,12 +74,25 @@ where
     }
 }
 
-pub trait TCPCommunicator {}
+pub struct TcpCommunicator {
+    pub sender: TcpStream,
+    pub receiver: BufReader<TcpStream>,
+}
 
-impl<C> Communicator<TcpStream, TcpStream> for C
-where
-    C: CommunicatorCore<TcpStream, TcpStream> + TCPCommunicator,
-{
+impl CommunicatorCore for TcpCommunicator {
+    type Sender = TcpStream;
+    type Receiver = TcpStream;
+
+    fn get_sender(&mut self) -> &mut Self::Sender {
+        &mut self.sender
+    }
+
+    fn get_receiver(&mut self) -> &mut BufReader<Self::Receiver> {
+        &mut self.receiver
+    }
+}
+
+impl Communicator for TcpCommunicator {
     fn send(&mut self, data: &[u8]) -> Result<()> {
         self.write(data)?;
         let sender = self.get_sender();
@@ -118,11 +126,6 @@ impl Read for ChannelReceiver {
     // TcpStreamの実装を見てみたところ、そっちはunsafeでうまいことやっているみたいだった
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        /*
-        while let Ok(data) = self.rx.try_recv() {
-            self.received_buf.extend(data);
-        }
-        */
         // let data = self.rx.recv().map_err(|_| std::io::ErrorKind::BrokenPipe)?;
         let (write_vec, len): (Vec<u8>, usize) = if self.received_buf.len() > buf.len() {
             let v = self.received_buf.drain(..buf.len());
@@ -162,38 +165,55 @@ impl Write for ChannelSender {
     }
 }
 
-pub fn new_channel_sr(
-    rx: Receiver<Vec<u8>>,
-    tx: Sender<Vec<u8>>,
-) -> (ChannelSender, ChannelReceiver) {
-    (ChannelSender::new(tx), ChannelReceiver::new(rx))
+pub struct ChannelCommunicator {
+    sender: ChannelSender,
+    receiver: BufReader<ChannelReceiver>,
 }
 
-pub trait ChannelInfo {
-    fn mut_tr(&mut self) -> &mut ChannelSender;
-    fn mut_cr(&mut self) -> &mut ChannelReceiver;
+impl ChannelCommunicator {
+    pub fn new(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> Self {
+        Self {
+            sender: ChannelSender::new(tx),
+            receiver: BufReader::new(ChannelReceiver::new(rx)),
+        }
+    }
+
+    fn mut_cr_inner(&mut self) -> &mut ChannelReceiver {
+        self.receiver.get_mut()
+    }
 }
 
-pub trait ChannelCommunicator {}
+impl CommunicatorCore for ChannelCommunicator {
+    type Sender = ChannelSender;
+    type Receiver = ChannelReceiver;
 
-impl<C> Communicator<ChannelSender, ChannelReceiver> for C
-where
-    C: ChannelInfo + ChannelCommunicator + CommunicatorCore<ChannelSender, ChannelReceiver>,
-{
+    fn get_sender(&mut self) -> &mut Self::Sender {
+        &mut self.sender
+    }
+
+    fn get_receiver(&mut self) -> &mut BufReader<Self::Receiver> {
+        &mut self.receiver
+    }
+}
+
+impl Communicator for ChannelCommunicator {
     fn send(&mut self, data: &[u8]) -> Result<()> {
         self.write(data)?;
 
-        let tr = self.mut_tr();
-        let mut data: Vec<u8> = tr.send_buf.drain(..).collect();
+        let sender = &mut self.sender;
+        let mut data: Vec<u8> = sender.send_buf.drain(..).collect();
         data.extend(b"\n");
 
-        tr.tx.send(data).map_err(|_| std::io::ErrorKind::BrokenPipe)?;
+        sender
+            .tx
+            .send(data)
+            .map_err(|_| std::io::ErrorKind::BrokenPipe)?;
 
         Ok(())
     }
 
     fn receive(&mut self) -> Result<Vec<u8>> {
-        let cr = self.mut_cr();
+        let cr = self.mut_cr_inner();
         let data = cr.rx.recv().map_err(|_| std::io::ErrorKind::BrokenPipe)?;
         cr.received_buf.extend(data);
 

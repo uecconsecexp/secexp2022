@@ -1,13 +1,12 @@
 use crate::comm::Communicator;
 use anyhow::Result;
-use std::io::{Read, Write};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct Matrix {
     data: Vec<Vec<String>>,
 }
 
-pub(crate) fn send_table<C: Communicator<impl Write, impl Read> + ?Sized>(
+pub(crate) fn send_table<C: Communicator + ?Sized>(
     comm: &mut C,
     table: Vec<Vec<f64>>,
 ) -> Result<()> {
@@ -31,9 +30,7 @@ pub(crate) fn send_table<C: Communicator<impl Write, impl Read> + ?Sized>(
     Ok(())
 }
 
-pub(crate) fn receive_table<C: Communicator<impl Write, impl Read> + ?Sized>(
-    comm: &mut C,
-) -> Result<Vec<Vec<f64>>> {
+pub(crate) fn receive_table<C: Communicator + ?Sized>(comm: &mut C) -> Result<Vec<Vec<f64>>> {
     let data = comm.receive()?;
     let matrix = serde_json::from_slice::<Matrix>(&data)?;
 
