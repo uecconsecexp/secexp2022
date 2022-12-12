@@ -1,5 +1,6 @@
 .env
 client
 server
-/se_rust/target
+target/
 playgrounds/
+.vscode/

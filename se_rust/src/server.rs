@@ -1,44 +1,49 @@
-use crate::comm::{Communicator, ChannelStream};
+use crate::comm::{ChannelCommunicator, Communicator, TcpCommunicator};
 use anyhow::Result;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
-use crossbeam_channel::{Sender, Receiver};
+use crossbeam_channel::{Receiver, Sender};
+use std::io::BufReader;
+use std::net::TcpListener;
 
-pub struct Server<S>
+pub struct Server<C: Communicator>(C);
+
+impl<C> Communicator for Server<C>
 where
-    S: Read + Write,
+    C: Communicator,
 {
-    stream: S,
-}
+    fn send(&mut self, data: &[u8]) -> std::io::Result<()> {
+        self.0.send(data)
+    }
 
-impl<S> Communicator for Server<S>
-where
-    S: Read + Write,
-{
-    type Stream = S;
-
-    fn get_stream(&mut self) -> &mut S {
-        &mut self.stream
+    fn receive(&mut self) -> std::io::Result<Vec<u8>> {
+        self.0.receive()
     }
 }
 
 const ADDRESS: &'static str = "127.0.0.1";
 const PORT: &'static str = "10000";
 
-pub type TcpServer = Server<TcpStream>;
+pub type TcpServer = Server<TcpCommunicator>;
 
-pub fn new_tcp_server() -> Result<TcpServer> {
-    let listener = TcpListener::bind(format!("{}:{}", ADDRESS, PORT))?;
-    let (stream, addr) = listener.accept()?;
-    println!("Connection from {:?}", addr);
+impl TcpServer {
+    pub fn new() -> Result<TcpServer> {
+        let listener = TcpListener::bind(format!("{}:{}", ADDRESS, PORT))?;
+        let (stream, addr) = listener.accept()?;
+        println!("Connection from {:?}", addr);
+        let receiver = BufReader::new(stream.try_clone()?);
 
-    Ok(Server { stream })
+        Ok(Self(TcpCommunicator {
+            sender: stream,
+            receiver,
+        }))
+    }
 }
 
-pub type ChannelServer = Server<ChannelStream>;
+pub type ChannelServer = Server<ChannelCommunicator>;
 
-pub fn new_channel_server(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelServer {
-    Server {
-        stream: ChannelStream::new(rx, tx),
+impl ChannelServer {
+    pub fn new(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelServer {
+        let cc = ChannelCommunicator::new(rx, tx);
+
+        Self(cc)
     }
 }

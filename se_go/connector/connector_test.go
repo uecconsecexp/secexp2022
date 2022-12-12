@@ -73,8 +73,6 @@ func testPing(m1 Messenger, m2 Messenger) func(t *testing.T) {
 			c <- receiveRes{result, err}
 		}()
 
-		// time.Sleep(SPAN)
-
 		r := <-c
 		if r.err != nil {
 			t.Fatal(r.err)
@@ -95,8 +93,6 @@ func testPingWithNewLine(m1 Messenger, m2 Messenger) func(t *testing.T) {
 			result, err := m2.Receive()
 			c <- receiveRes{result, err}
 		}()
-
-		// time.Sleep(SPAN)
 
 		r := <-c
 		if r.err != nil {

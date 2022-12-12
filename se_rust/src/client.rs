@@ -1,42 +1,46 @@
-use crate::comm::{Communicator, ChannelStream};
+use crate::comm::{ChannelCommunicator, Communicator, TcpCommunicator};
 use anyhow::Result;
+use crossbeam_channel::{Receiver, Sender};
+use std::io::BufReader;
 use std::net::TcpStream;
-use std::io::{Read, Write};
-use crossbeam_channel::{Sender, Receiver};
 
-pub struct Client<S>
+pub struct Client<C: Communicator>(C);
+
+impl<C> Communicator for Client<C>
 where
-    S: Read + Write,
+    C: Communicator,
 {
-    stream: S,
-}
+    fn send(&mut self, data: &[u8]) -> std::io::Result<()> {
+        self.0.send(data)
+    }
 
-impl<S> Communicator for Client<S>
-where
-    S: Read + Write,
-{
-    type Stream = S;
-
-    fn get_stream(&mut self) -> &mut S {
-        &mut self.stream
+    fn receive(&mut self) -> std::io::Result<Vec<u8>> {
+        self.0.receive()
     }
 }
 
 const PORT: &'static str = "10000";
 
-pub type TcpClient = Client<TcpStream>;
+pub type TcpClient = Client<TcpCommunicator>;
 
-pub fn new_tcp_client(server_address: &str) -> Result<TcpClient> {
-    let stream = TcpStream::connect(format!("{}:{}", server_address, PORT))?;
-    println!("Connection to {:?}", server_address);
+impl TcpClient {
+    pub fn new(server_address: &str) -> Result<TcpClient> {
+        let stream = TcpStream::connect(format!("{}:{}", server_address, PORT))?;
+        println!("Connection to {:?}", server_address);
+        let receiver = BufReader::new(stream.try_clone()?);
 
-    Ok(Client { stream })
+        Ok(Client(TcpCommunicator {
+            sender: stream,
+            receiver,
+        }))
+    }
 }
 
-pub type ChannelClient = Client<ChannelStream>;
+pub type ChannelClient = Client<ChannelCommunicator>;
 
-pub fn new_channel_client(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelClient {
-    Client {
-        stream: ChannelStream::new(rx, tx),
+impl ChannelClient {
+    pub fn new(rx: Receiver<Vec<u8>>, tx: Sender<Vec<u8>>) -> ChannelClient {
+        let cc = ChannelCommunicator::new(rx, tx);
+        Self(cc)
     }
 }

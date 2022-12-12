@@ -6,14 +6,21 @@ pub struct Matrix {
     data: Vec<Vec<String>>,
 }
 
-pub(crate) fn send_table<C: Communicator + ?Sized>(comm: &mut C, table: Vec<Vec<f64>>) -> Result<()> {
-    if table.len() == 0 || table.len() != table[0].len() {
+pub(crate) fn send_table<C: Communicator + ?Sized>(
+    comm: &mut C,
+    table: Vec<Vec<f64>>,
+) -> Result<()> {
+    if table.len() == 0 {
         return Err(anyhow::anyhow!("Invalid matrix"));
     }
 
     let data = table
         .into_iter()
-        .map(|row| row.into_iter().map(|x| format!("{:e}", x)).collect::<Vec<_>>())
+        .map(|row| {
+            row.into_iter()
+                .map(|x| format!("{:e}", x))
+                .collect::<Vec<_>>()
+        })
         .collect::<Vec<_>>();
     let matrix = Matrix { data };
 

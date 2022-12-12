@@ -102,10 +102,10 @@ type ChugakuClient struct {
 	scanner *bufio.Scanner
 }
 
-func NewChugakuClient(ServerAddr string) (ChugakuClient, error) {
+func NewChugakuClient(serverAddr string) (ChugakuClient, error) {
 	fmt.Println("予備校に接続します……")
 
-	conn, err := net.DialTimeout(PROTOCOL, ServerAddr+PORT, DEADLINE)
+	conn, err := net.DialTimeout(PROTOCOL, serverAddr+PORT, DEADLINE)
 	if err != nil {
 		return ChugakuClient{}, err
 	}
