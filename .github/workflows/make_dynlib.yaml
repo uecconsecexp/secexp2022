@@ -1,0 +1,34 @@
+name: "Make Dynlib"
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: se_dylib
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Rust setup
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build
+        run: |
+          cargo build --release
+          cp ./target/release/libse_dylib.so .
+      - name: Test
+        run: |
+          cp ../libse_dylib.so .
+          g++ -pthread test.cc libse_dylib.so -o test
+          LD_LIBRARY_PATH=. ./test
+        working-directory: se_dylib/for_test
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "./libse_dylib.so"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

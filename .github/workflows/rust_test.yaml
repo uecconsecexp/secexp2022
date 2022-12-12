@@ -1,0 +1,20 @@
+name: "Rust Test"
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: se_rust
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Rust setup
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run test
+        run: cargo test
