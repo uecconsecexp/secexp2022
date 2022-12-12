@@ -1,4 +1,5 @@
 name: "Go Test"
+on:
   push:
     tags:
       - "v*"
