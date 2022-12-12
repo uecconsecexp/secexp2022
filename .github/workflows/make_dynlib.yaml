@@ -29,6 +29,6 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: "./libse_dylib.so"
+          files: libse_dylib.so
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
