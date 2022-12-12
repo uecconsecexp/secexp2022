@@ -6,6 +6,11 @@ on:
       - test
     paths:
       - se_rust/**
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -6,6 +6,10 @@ on:
       - test
     paths:
       - se_go/**
+  pull_request:
+    branches:
+      - main
+    types: [closed]
 jobs:
   build:
     runs-on: ubuntu-latest
