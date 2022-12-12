@@ -54,7 +54,7 @@ where
         }
     });
 
-    while !t.is_finished() {}
+    t.join().unwrap();
 }
 
 fn ping<C1, C2>(c1: Arc<Mutex<C1>>, c2: Arc<Mutex<C2>>)
@@ -162,7 +162,7 @@ fn ping_matrix_multiple<C1, C2>(
         }
     });
 
-    while !t.is_finished() {}
+    t.join().unwrap();
 }
 
 fn tests_base<C1, C2>(server: Arc<Mutex<C1>>, client: Arc<Mutex<C2>>)

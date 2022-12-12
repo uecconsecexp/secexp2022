@@ -1,8 +1,11 @@
 name: "Go Test"
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+      - test
+    paths:
+      - se_go/**
 jobs:
   build:
     runs-on: ubuntu-latest

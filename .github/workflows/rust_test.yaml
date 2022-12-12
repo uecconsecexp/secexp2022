@@ -1,8 +1,11 @@
 name: "Rust Test"
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+      - test
+    paths:
+      - se_rust/**
 jobs:
   test:
     runs-on: ubuntu-latest
